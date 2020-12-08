@@ -6,7 +6,7 @@
 #include <functional>
 
 namespace {
-  void workInLane(std::atomic<int>& nEventsProcessed, int nEvents, tbb::task_group& iGroup, std::atomic<unsigned int>& iNGroupsDone, int index) {
+  void workInLane(std::atomic<int>& nEventsProcessed, unsigned int nChains, int nEvents, tbb::task_group& iGroup, std::atomic<unsigned int>& iNGroupsDone, int index) {
     int count = 0;
     if(index == 0) {
       count = ++nEventsProcessed;
@@ -15,12 +15,12 @@ namespace {
 	return;
       }
     } 
-    if(++index > 4) {
+    if(++index > nChains) {
       index = 0;
     }
     iGroup.run(
-	       [&nEventsProcessed, nEvents, &iGroup,&iNGroupsDone, index](){
-		 workInLane(nEventsProcessed, nEvents, iGroup, iNGroupsDone, index);
+	       [&nEventsProcessed, nChains, nEvents, &iGroup,&iNGroupsDone, index](){
+		 workInLane(nEventsProcessed, nChains, nEvents, iGroup, iNGroupsDone, index);
 	       });
   }
 }
@@ -35,7 +35,9 @@ int main(int argc, char* argv[]) {
   int parallelism = atoi(argv[1]);
   tbb::global_control c(tbb::global_control::max_allowed_parallelism, parallelism);
 
-  unsigned int nLanes = atoi(argv[2]);
+  unsigned int nLanes = parallelism;
+
+  unsigned int nChains = atoi(argv[2]);
 
   auto nEvents = atoi(argv[3]);
   
@@ -47,8 +49,8 @@ int main(int argc, char* argv[]) {
   for(int i=0; i< nLanes; ++i) {
     auto& group = groups[i];
     group.run(
-	      [&nEventsProcessed, nEvents, &group, &nGroupsDone]() {
-		workInLane(nEventsProcessed, nEvents, group,nGroupsDone, 0);
+	      [&nEventsProcessed, nEvents, nChains, &group, &nGroupsDone]() {
+		workInLane(nEventsProcessed, nChains, nEvents, group,nGroupsDone, 0);
 	      });
   }
 
@@ -60,6 +62,6 @@ int main(int argc, char* argv[]) {
 
   std::chrono::microseconds eventTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now()-start);
 
-  std::cout <<"nGroups> nThreads: "<<parallelism<<" nLanes: "<<nLanes<<" nEvents: "<<nEvents<<" time: "<<eventTime.count()<<"us" << std::endl;
+  std::cout <<"nGroups> nThreads: "<<parallelism<<" nLanes: "<<nLanes<<" nChains: "<<nChains<<" nEvents: "<<nEvents<<" nTried: "<<nEventsProcessed.load() <<" time: "<<eventTime.count()<<"us" << std::endl;
   return 0;
 }

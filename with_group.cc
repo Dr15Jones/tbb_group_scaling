@@ -6,7 +6,7 @@
 #include <functional>
 
 namespace {
-  void workInLane(std::atomic<int>& nEventsProcessed, int nEvents, tbb::task_group& iGroup, int index) {
+  void workInLane(std::atomic<int>& nEventsProcessed, unsigned int nChains, int nEvents, tbb::task_group& iGroup, int index) {
     int count = 0;
     if(index == 0) {
       count = ++nEventsProcessed;
@@ -14,12 +14,12 @@ namespace {
 	return;
       }
     } 
-    if(++index > 4) {
+    if(++index > nChains) {
       index = 0;
     }
     iGroup.run(
-	       [&nEventsProcessed, nEvents, &iGroup,index](){
-		 workInLane(nEventsProcessed, nEvents, iGroup, index);
+	       [&nEventsProcessed, nChains, nEvents, &iGroup,index](){
+		 workInLane(nEventsProcessed, nChains, nEvents, iGroup, index);
 	       });
   }
 }
@@ -34,7 +34,9 @@ int main(int argc, char* argv[]) {
   int parallelism = atoi(argv[1]);
   tbb::global_control c(tbb::global_control::max_allowed_parallelism, parallelism);
 
-  unsigned int nLanes = atoi(argv[2]);
+  unsigned int nLanes = parallelism;
+
+  unsigned int nChains = atoi(argv[2]);
 
   auto nEvents = atoi(argv[3]);
   
@@ -44,14 +46,14 @@ int main(int argc, char* argv[]) {
   auto start = std::chrono::high_resolution_clock::now();
   for(int i=0; i< nLanes; ++i) {
     group.run(
-	      [&nEventsProcessed, nEvents, &group]() {
-		workInLane(nEventsProcessed, nEvents, group,0);
+	      [&nEventsProcessed, nEvents, nChains, &group]() {
+		workInLane(nEventsProcessed, nChains, nEvents, group,0);
 	      });
   }
 
   group.wait();
   std::chrono::microseconds eventTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now()-start);
 
-  std::cout <<"group> nThreads: "<<parallelism<<" nLanes: "<<nLanes<<" nEvents: "<<nEvents<<" time: "<<eventTime.count()<<"us" << std::endl;
+  std::cout <<"group> nThreads: "<<parallelism<<" nLanes: "<<nLanes<<" nChains: "<<nChains<<" nEvents: "<<nEvents<<" nTried: "<<nEventsProcessed.load()<<" time: "<<eventTime.count()<<"us" << std::endl;
   return 0;
 }
