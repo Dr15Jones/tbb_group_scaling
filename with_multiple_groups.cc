@@ -60,6 +60,6 @@ int main(int argc, char* argv[]) {
 
   std::chrono::microseconds eventTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now()-start);
 
-  std::cout <<"nThreads: "<<parallelism<<" nLanes: "<<nLanes<<" nEvents: "<<nEvents<<" time: "<<eventTime.count()<<"us" << std::endl;
+  std::cout <<"nGroups> nThreads: "<<parallelism<<" nLanes: "<<nLanes<<" nEvents: "<<nEvents<<" time: "<<eventTime.count()<<"us" << std::endl;
   return 0;
 }

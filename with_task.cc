@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
   waitTask->wait_for_all();
   std::chrono::microseconds eventTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now()-start);
 
-  std::cout <<"nThreads: "<<parallelism<<" nLanes: "<<nLanes<<" nEvents: "<<nEvents<<" time: "<<eventTime.count()<<"us" << std::endl;
+  std::cout <<"task> nThreads: "<<parallelism<<" nLanes: "<<nLanes<<" nEvents: "<<nEvents<<" time: "<<eventTime.count()<<"us" << std::endl;
 
   tbb::task::destroy(*waitTask);
 
